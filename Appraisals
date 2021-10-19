@@ -895,10 +895,10 @@ elsif ruby_version?('2.5')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.6')
-  if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -906,6 +906,7 @@ elsif ruby_version?('2.6')
     appraise 'rails5-postgres' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -913,6 +914,7 @@ elsif ruby_version?('2.6')
     appraise 'rails5-semantic-logger' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
@@ -920,6 +922,7 @@ elsif ruby_version?('2.6')
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -928,6 +931,7 @@ elsif ruby_version?('2.6')
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -937,6 +941,7 @@ elsif ruby_version?('2.6')
     appraise 'rails5-postgres-sidekiq' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq'
       gem 'activejob'
       gem 'sprockets', '< 4'
@@ -946,6 +951,7 @@ elsif ruby_version?('2.6')
     appraise 'rails6-mysql2' do
       gem 'rails', '~> 6.0.0'
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -953,6 +959,7 @@ elsif ruby_version?('2.6')
     appraise 'rails6-postgres' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -960,6 +967,7 @@ elsif ruby_version?('2.6')
     appraise 'rails6-semantic-logger' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
@@ -967,6 +975,7 @@ elsif ruby_version?('2.6')
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -975,6 +984,7 @@ elsif ruby_version?('2.6')
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -984,6 +994,7 @@ elsif ruby_version?('2.6')
     appraise 'rails6-postgres-sidekiq' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq'
       gem 'activejob'
       gem 'sprockets', '< 4'
@@ -993,6 +1004,7 @@ elsif ruby_version?('2.6')
     appraise 'rails61-mysql2' do
       gem 'rails', '~> 6.1.0'
       gem 'mysql2', '~> 0.5', platform: :ruby
+      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1000,6 +1012,7 @@ elsif ruby_version?('2.6')
     appraise 'rails61-postgres' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1007,6 +1020,7 @@ elsif ruby_version?('2.6')
     appraise 'rails61-postgres-redis' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'redis', '>= 4.2.5'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -1015,6 +1029,7 @@ elsif ruby_version?('2.6')
     appraise 'rails61-postgres-sidekiq' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sidekiq', '>= 6.1.2'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -1023,6 +1038,7 @@ elsif ruby_version?('2.6')
     appraise 'rails61-semantic-logger' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
@@ -1056,7 +1072,7 @@ elsif ruby_version?('2.6')
       gem 'faraday'
       gem 'grape'
       gem 'graphql', '>= 1.12.0'
-      gem 'grpc'
+      gem 'grpc', platform: :ruby
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
@@ -1064,9 +1080,11 @@ elsif ruby_version?('2.6')
       gem 'makara'
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'pg', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'presto-client', '>=  0.5.14'
-      gem 'qless'
+      gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-test'
@@ -1082,7 +1100,8 @@ elsif ruby_version?('2.6')
       gem 'sidekiq'
       gem 'sinatra', '>= 1.4'
       gem 'sneakers', '>= 2.12.0'
-      gem 'sqlite3', '~> 1.4.1'
+      gem 'sqlite3', '~> 1.4.1', platform: :ruby
+      gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0.beta2'
@@ -1095,10 +1114,8 @@ elsif ruby_version?('2.6')
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
     end
-  end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.7')
-  if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
@@ -1297,7 +1314,6 @@ elsif ruby_version?('2.7')
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
     end
-  end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('3.0')
   appraise 'rails61-mysql2' do
