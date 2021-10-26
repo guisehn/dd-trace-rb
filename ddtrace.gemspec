@@ -46,8 +46,11 @@ Gem::Specification.new do |spec|
     spec.add_dependency 'msgpack', '< 1.4'
   end
 
-  # Used by the profiler
+  # Used by the profiler and appsec
   spec.add_dependency 'ffi', '~> 1.0'
+
+  # Used by appsec
+  spec.add_dependency 'libddwaf', '~> 1.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
 end
