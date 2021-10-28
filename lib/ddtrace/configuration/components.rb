@@ -54,28 +54,76 @@ module Datadog
           tracer = settings.tracer.instance
           return tracer unless tracer.nil?
 
-          tracer = Tracer.new(
+          # Apply test mode settings if test mode is activated
+          if settings.test_mode.enabled
+            context_flush = build_test_mode_context_flush(settings)
+            sampler = build_test_mode_sampler
+            writer = build_test_mode_writer(settings, agent_settings)
+          else
+            context_flush = build_context_flush(settings)
+            sampler = build_sampler(settings)
+            writer = build_writer(settings, agent_settings)
+          end
+
+          Tracer.new(
             default_service: settings.service,
             enabled: settings.tracer.enabled,
-            partial_flush: settings.tracer.partial_flush.enabled,
+            context_flush: context_flush,
+            sampler: sampler,
+            writer: writer,
             tags: build_tracer_tags(settings),
-            sampler: PrioritySampler.new(
-              base_sampler: AllSampler.new,
-              post_sampler: Sampling::RuleSampler.new(
+          )
+        end
+
+        def build_context_flush(settings)
+          if settings.tracer.partial_flush.enabled
+            Datadog::ContextFlush::Partial.new(min_spans_before_partial_flush: settings.tracer.partial_flush.min_spans_threshold)
+          else
+            Datadog::ContextFlush::Finished.new
+          end
+        end
+
+        def build_sampler(settings)
+          if (sampler = settings.tracer.sampler)
+            if settings.tracer.priority_sampling == false
+              sampler
+            else
+              ensure_priority_sampling(sampler)
+            end
+          else
+            if settings.tracer.priority_sampling == false
+              Sampling::RuleSampler.new(
                 rate_limit: settings.sampling.rate_limit,
                 default_sample_rate: settings.sampling.default_rate
               )
+            else
+              PrioritySampler.new(
+                base_sampler: AllSampler.new,
+                post_sampler: Sampling::RuleSampler.new(
+                  rate_limit: settings.sampling.rate_limit,
+                  default_sample_rate: settings.sampling.default_rate
+                )
+              )
+            end
+          end
+        end
+
+        def build_writer(settings, agent_settings)
+          writer = settings.tracer.writer
+          return writer if writer
+
+          Writer.new(agent_settings: agent_settings, **settings.tracer.writer_options)
+        end
+
+        def ensure_priority_sampling(sampler = nil)
+          if sampler.is_a?(PrioritySampler)
+            sampler
+          else
+            PrioritySampler.new(
+             base_sampler: sampler,
+             post_sampler: Sampling::RuleSampler.new
             )
-          )
-
-          # TODO: We reconfigure the tracer here because it has way too many
-          #       options it allows to mutate, and it's overwhelming to rewrite
-          #       tracer initialization for now. Just reconfigure using the
-          #       existing mutable #configure function. Remove when these components
-          #       are extracted.
-          tracer.configure(agent_settings: agent_settings, **build_tracer_options(settings, agent_settings))
-
-          tracer
+          end
         end
 
         def build_profiler(settings, agent_settings, tracer)
@@ -137,38 +185,24 @@ module Datadog
           end
         end
 
-        def build_tracer_options(settings, agent_settings)
-          tracer_options = {}.tap do |opts|
-            tset = settings.tracer
-            opts[:min_spans_before_partial_flush] = tset.partial_flush.min_spans_threshold unless tset.partial_flush.min_spans_threshold.nil?
-            opts[:partial_flush] = tset.partial_flush.enabled unless tset.partial_flush.enabled.nil?
-            opts[:priority_sampling] = tset.priority_sampling unless tset.priority_sampling.nil?
-            opts[:sampler] = tset.sampler unless tset.sampler.nil?
-            opts[:writer] = tset.writer unless tset.writer.nil?
-            opts[:writer_options] = tset.writer_options if tset.writer.nil?
-          end
-
-          # Apply test mode settings if test mode is activated
-          if settings.test_mode.enabled
-            build_tracer_test_mode_options(tracer_options, settings, agent_settings)
+        def build_test_mode_context_flush(settings)
+          # If context flush behavior is provided, use it instead.
+          if settings.test_mode.context_flush
+            settings.test_mode.context_flush
           else
-            tracer_options
+            build_context_flush(settings)
           end
         end
 
-        def build_tracer_test_mode_options(tracer_options, settings, agent_settings)
-          tracer_options.tap do |opts|
-            # Do not sample any spans for tests; all must be preserved.
-            opts[:sampler] = Datadog::AllSampler.new
+        def build_test_mode_sampler
+          # Do not sample any spans for tests; all must be preserved.
+          Datadog::AllSampler.new
+        end
 
-            # If context flush behavior is provided, use it instead.
-            opts[:context_flush] = settings.test_mode.context_flush if settings.test_mode.context_flush
-
-            # Flush traces synchronously, to guarantee they are written.
-            writer_options = settings.test_mode.writer_options || {}
-            writer_options[:agent_settings] = agent_settings if agent_settings
-            opts[:writer] = Datadog::SyncWriter.new(writer_options)
-          end
+        def build_test_mode_writer(settings, agent_settings)
+          # Flush traces synchronously, to guarantee they are written.
+          writer_options = settings.test_mode.writer_options || {}
+          Datadog::SyncWriter.new(agent_settings: agent_settings, **writer_options)
         end
 
         def build_profiler_recorder(settings)

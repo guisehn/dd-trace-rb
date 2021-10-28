@@ -331,37 +331,34 @@ RSpec.describe Datadog::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new tracer' do
         let(:tracer) { instance_double(Datadog::Tracer) }
+        let(:writer) { instance_double(Datadog::Writer) }
+        let(:context_flush) { be_a(Datadog::ContextFlush::Finished) }
         let(:default_options) do
           {
             default_service: settings.service,
             enabled: settings.tracer.enabled,
-            partial_flush: settings.tracer.partial_flush.enabled,
+            context_flush: context_flush,
             tags: settings.tags,
             sampler: lambda do |sampler|
               expect(sampler.pre_sampler).to be_a(Datadog::AllSampler)
               expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
               expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::RateByServiceSampler)
-            end
+            end,
+            writer: writer,
           }
         end
-        let(:options) { {} }
 
-        let(:default_configure_options) do
-          {
-            agent_settings: agent_settings,
-            partial_flush: settings.tracer.partial_flush.enabled,
-            writer_options: settings.tracer.writer_options
-          }
-        end
-        let(:configure_options) { {} }
+        let(:options) { defined?(super) ? super() : {} }
+        let(:writer_options) { defined?(super) ? super() : {} }
 
         before do
           expect(Datadog::Tracer).to receive(:new)
             .with(default_options.merge(options))
             .and_return(tracer)
 
-          expect(tracer).to receive(:configure)
-            .with(default_configure_options.merge(configure_options))
+          allow(Datadog::Writer).to receive(:new)
+             .with(agent_settings: agent_settings, **writer_options)
+             .and_return(writer)
         end
 
         it { is_expected.to be(tracer) }
@@ -400,59 +397,99 @@ RSpec.describe Datadog::Configuration::Components do
       end
 
       context 'with :partial_flush :enabled' do
-        let(:enabled) { double('enabled') }
+        let(:enabled) { true }
 
         before do
           allow(settings.tracer.partial_flush)
             .to receive(:enabled)
-            .and_return(enabled)
+                  .and_return(enabled)
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { partial_flush: enabled } }
-          let(:configure_options) { { partial_flush: enabled } }
-        end
-      end
-
-      context 'with :partial_flush :min_spans_threshold' do
-        let(:min_spans_threshold) { double('min_spans_threshold') }
-
-        before do
-          allow(settings.tracer.partial_flush)
-            .to receive(:min_spans_threshold)
-            .and_return(min_spans_threshold)
+          let(:options) { { context_flush: be_a(Datadog::ContextFlush::Partial) } }
         end
 
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { min_spans_before_partial_flush: min_spans_threshold } }
+        context 'with :partial_flush :min_spans_threshold' do
+          let(:min_spans_threshold) { double('min_spans_threshold') }
+
+          before do
+            allow(settings.tracer.partial_flush)
+              .to receive(:min_spans_threshold)
+                    .and_return(min_spans_threshold)
+          end
+
+          it_behaves_like 'new tracer' do
+            let(:options) do
+              { context_flush: be_a(Datadog::ContextFlush::Partial) &
+                have_attributes(min_spans_for_partial: min_spans_threshold) }
+            end
+          end
         end
       end
 
       context 'with :priority_sampling' do
-        let(:priority_sampling) { double('priority_sampling') }
-
         before do
           allow(settings.tracer)
             .to receive(:priority_sampling)
-            .and_return(priority_sampling)
+                  .and_return(priority_sampling)
         end
 
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { priority_sampling: priority_sampling } }
+        context 'enabled' do
+          let(:priority_sampling) { true }
+
+          it_behaves_like 'new tracer'
+
+          context 'with :sampler' do
+            before do
+              allow(settings.tracer)
+                .to receive(:sampler)
+                      .and_return(sampler)
+            end
+
+            context 'that is a priority sampler' do
+              let(:sampler) { Datadog::PrioritySampler.new }
+
+              it_behaves_like 'new tracer' do
+                let(:options) { { sampler: sampler } }
+              end
+            end
+
+            context 'that is not a priority sampler' do
+              let(:sampler) { double('sampler') }
+
+              context 'wraps sampler in a priority sampler' do
+                it_behaves_like 'new tracer' do
+
+                  let(:options) { { sampler: be_a(Datadog::PrioritySampler) & have_attributes(
+                    pre_sampler: sampler,
+                    priority_sampler: be_a(Datadog::Sampling::RuleSampler)
+                  ) } }
+                end
+              end
+            end
+          end
         end
-      end
 
-      context 'with :sampler' do
-        let(:sampler) { instance_double(Datadog::Sampler) }
+        context 'disabled' do
+          let(:priority_sampling) { false }
 
-        before do
-          allow(settings.tracer)
-            .to receive(:sampler)
-            .and_return(sampler)
-        end
+          it_behaves_like 'new tracer' do
+            let(:options) { { sampler: be_a(Datadog::Sampling::RuleSampler) } }
+          end
 
-        it_behaves_like 'new tracer' do
-          let(:configure_options) { { sampler: sampler } }
+          context 'with :sampler' do
+            before do
+              allow(settings.tracer)
+                .to receive(:sampler)
+                      .and_return(sampler)
+            end
+
+            let(:sampler) { double('sampler') }
+
+            it_behaves_like 'new tracer' do
+              let(:options) { { sampler: sampler } }
+            end
+          end
         end
       end
 
@@ -539,9 +576,8 @@ RSpec.describe Datadog::Configuration::Components do
                 let(:context_flush) { nil }
 
                 it_behaves_like 'new tracer' do
-                  let(:configure_options) do
+                  let(:options) do
                     {
-                      agent_settings: agent_settings,
                       sampler: kind_of(Datadog::AllSampler),
                       writer: kind_of(Datadog::SyncWriter)
                     }
@@ -553,9 +589,8 @@ RSpec.describe Datadog::Configuration::Components do
                 let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
 
                 it_behaves_like 'new tracer' do
-                  let(:configure_options) do
+                  let(:options) do
                     {
-                      agent_settings: agent_settings,
                       context_flush: context_flush,
                       sampler: kind_of(Datadog::AllSampler),
                       writer: kind_of(Datadog::SyncWriter)
@@ -580,13 +615,12 @@ RSpec.describe Datadog::Configuration::Components do
                   before do
                     expect(Datadog::SyncWriter)
                       .to receive(:new)
-                      .with(writer_options)
+                      .with(agent_settings: agent_settings, **writer_options)
                       .and_return(sync_writer)
                   end
 
-                  let(:configure_options) do
+                  let(:options) do
                     {
-                      agent_settings: agent_settings,
                       sampler: kind_of(Datadog::AllSampler),
                       writer: sync_writer
                     }
@@ -619,30 +653,24 @@ RSpec.describe Datadog::Configuration::Components do
           allow(settings.tracer)
             .to receive(:writer)
             .and_return(writer)
+
+          expect(Datadog::Writer).to_not receive(:new)
         end
 
         it_behaves_like 'new tracer' do
-          let(:default_configure_options) do
-            {
-              agent_settings: agent_settings,
-              partial_flush: settings.tracer.partial_flush.enabled,
-              writer: writer
-            }
-          end
+          let(:options) { { writer: writer } }
         end
       end
 
       context 'with :writer_options' do
         let(:writer_options) { { custom_option: :custom_value } }
 
-        before do
-          allow(settings.tracer)
-            .to receive(:writer_options)
-            .and_return(writer_options)
-        end
-
         it_behaves_like 'new tracer' do
-          let(:configure_options) { { writer_options: writer_options } }
+          before do
+            expect(settings.tracer)
+              .to receive(:writer_options)
+                    .and_return(writer_options)
+          end
         end
 
         context 'and :writer' do
@@ -656,13 +684,7 @@ RSpec.describe Datadog::Configuration::Components do
 
           it_behaves_like 'new tracer' do
             # Ignores the writer options in favor of the writer
-            let(:default_configure_options) do
-              {
-                agent_settings: agent_settings,
-                partial_flush: settings.tracer.partial_flush.enabled,
-                writer: writer
-              }
-            end
+            let(:options) { { writer: writer } }
           end
         end
       end
