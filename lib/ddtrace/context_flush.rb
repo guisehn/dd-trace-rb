@@ -10,8 +10,8 @@ module Datadog
       #
       # @return [Array<Span>] trace to be flushed, or +nil+ if the trace is not finished
       def consume!(context)
-        trace, sampled = get_trace(context)
-        trace if sampled
+        trace = get_trace(context)
+        trace if trace && trace.sampled
       end
 
       protected
@@ -41,41 +41,34 @@ module Datadog
       #
       # @return [Array<Span>] partial or complete trace to be flushed, or +nil+ if no spans are finished
       def consume!(context)
-        trace, sampled = get_trace(context)
+        return unless partial_flush?(context)
 
-        return nil unless sampled
-        return trace if trace && !trace.empty?
+        trace = get_trace(context)
+        trace if trace && trace.sampled
+      end
 
-        partial_trace(context)
+      def partial_flush?(context)
+        return false unless context.sampled?
+        return true if context.finished?
+        return false if context.finished_span_count < @min_spans_for_partial
+
+        true
       end
 
       protected
 
       def get_trace(context)
-        context.get
+        partial_trace(context)
       end
 
       private
 
       def partial_trace(context)
-        return nil if context.finished_span_count < @min_spans_for_partial
-
-        finished_spans(context)
-      end
-
-      def finished_spans(context)
-        trace = context.delete_span_if(&:finished?)
-
-        # Ensure that the first span in a partial trace has
-        # sampling and origin information.
-        if trace[0]
-          context.annotate_for_flush!(trace[0])
-        else
-          Datadog.logger.debug('Tried to retrieve trace from context, but got nothing. ' \
-            "Is there another consumer for this context? #{context.trace_id}")
-        end
-
-        trace unless trace.empty?
+        trace = context.get_partial_trace(&:finished?)
+        return if trace.empty?
+        # TODO: Remove this; do this when trace is being serialized instead.
+        trace.annotate!
+        trace
       end
     end
   end

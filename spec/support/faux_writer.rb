@@ -14,21 +14,21 @@ class FauxWriter < Datadog::Writer
     @mutex = Mutex.new
 
     # easy access to registered components
-    @spans = []
+    @traces = []
   end
 
   def write(trace)
     @mutex.synchronize do
       super(trace) if @options[:call_original]
-      @spans << trace
+      @traces << trace
     end
   end
 
   def spans(action = :clear)
     @mutex.synchronize do
-      spans = @spans
-      @spans = [] if action == :clear
-      spans.flatten!
+      traces = @traces
+      @traces = [] if action == :clear
+      spans = traces.collect(&:spans).flatten!
       # sort the spans to avoid test flakiness
       spans.sort! do |a, b|
         if a.name == b.name
@@ -45,17 +45,6 @@ class FauxWriter < Datadog::Writer
           a.name <=> b.name
         end
       end
-    end
-  end
-
-  def trace0_spans
-    @mutex.synchronize do
-      return [] unless @spans
-      return [] if @spans.empty?
-
-      spans = @spans[0]
-      @spans = @spans[1..@spans.size]
-      spans
     end
   end
 end

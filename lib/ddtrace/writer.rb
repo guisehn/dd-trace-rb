@@ -156,7 +156,7 @@ module Datadog
       #       instead of working through the trace writer.
       # Associate root span with runtime metrics
       if Datadog.configuration.runtime_metrics.enabled && !trace.empty?
-        Datadog.runtime_metrics.associate_with_span(trace.first)
+        Datadog.runtime_metrics.associate_with_span(trace.root_span)
       end
 
       worker_local = @worker
@@ -180,10 +180,10 @@ module Datadog
 
     def inject_hostname!(traces)
       traces.each do |trace|
-        next if trace.first.nil?
+        next if trace.empty?
 
         hostname = Datadog::Core::Environment::Socket.hostname
-        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
+        trace.root_span.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
     end
 

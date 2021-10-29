@@ -17,7 +17,7 @@ module Datadog
       def call(trace)
         deleted = Set.new
 
-        trace.delete_if do |span|
+        trace.spans.delete_if do |span|
           if deleted.include?(span.parent)
             deleted << span
             true
